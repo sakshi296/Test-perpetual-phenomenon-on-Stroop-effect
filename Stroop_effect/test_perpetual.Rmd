@@ -1,0 +1,193 @@
+---
+title: "Data Analyst Nanodegree"
+output: html_document
+---
+
+# Test A Perpetual Phenomenon
+
+# Background Information
+
+In a Stroop task, participants are presented with a list of words, with each word displayed in a color of ink. The participant's task is to say out loud the color of the ink in which the word is printed. The task has two conditions: a congruent words condition, and an incongruent words condition. 
+
+In the **congruent words** condition, the words being displayed are color words whose names match the colors in which they are printed: for example RED, BLUE. 
+
+In the **incongruent words** condition, the words displayed are color words whose names do not match the colors in which they are printed: for example PURPLE, ORANGE. 
+
+In each case, we measure the time it takes to name the ink colors in equally-sized lists. Each participant will go through and record a time from each condition.
+
+# Questions For Investigation
+
+### 1. What is our independent variable? What is our dependent variable?
+
+Ans: **Independent Variable:** Congruency condition (whether the name of the color matches with the ink color).
+
+**Dependent Variable:** The time it takes to name the ink colors in equally-sized lists.
+
+### 2. What is an appropriate set of hypotheses for this task? What kind of statistical test do you expect to perform? Justify your choices.
+
+Ans: One hypothesis we can use is: There is a difference between the time used to recognize colors under congruent words condition and incongruent words condition, namely, the Stroop Effect is in existence.
+
+Basically, here we referring to the population means of congruence words group and incongruence words group - average times for the respective groups to recognize the colors.
+
+By comparing these means directly, we'll be able to tell whether there is a difference between the the two groups' color recognition times. However, it wouldn't be possible to do the experiment with all potential subjects in the world, so we need to work with the sample we have on hand to make inference about the population means, i.e., to use the observation means, sd and other statistics to infer about the population means. In this case, the observation is the difference between the two groups' times. With this new data, we can construct new statistics such as means and standard errors.
+
+To do this, we can do two-sided paired student t-test to verify. This is because:
+
+* We need to address the uncertainty in sample standard error resulted from the unknown population standard deviation.
+* We are comparing the means of two groups that are dependent.
+* The same subject is involved under both conditions.
+
+The hypothesis we will test:
+
+H0: $\mu_c - \mu_I = 0$ (There is no significant difference in the population average response time in viewing the congruent(c) words vs viewing the incongruent(i) words.)
+
+HA: $\mu_c - \mu_I \neq 0$ (There is a significant difference, positive or negative, in the population average response times.)
+
+The null hypothesis should be that the mean time for colour recognition for congruent words is equal to the mean time for incongruent words.The alternative hypothesis should be that the congruent words mean is not equal to the incongruent words mean.Thus, implying a two-tailed test.
+
+A t-test is appropriate because the population variance is unknown and the sample size is less than 30. When the sample size is less than 30, the sample data no longer approximate a normal distribution, which makes the use of a Z-value inappropriate. The following assumptions are required for t-tests for dependent means:
+
+* Interval or ratio scale of measurement (approximately interval)
+* Random sampling from a defined population
+* Samples or sets of data used to produce the difference scores are linked in the population through repeated measurement, natural association, or matching
+* Scores are normally distributed in the population; difference scores are normally distributed
+
+### 3. Report some descriptive statistics regarding this dataset. Include at least one measure of central tendency and at least one measure of variability.
+
+
+```{r echo=FALSE, plot1 ,message=FALSE, warning=FALSE}
+
+
+# Read in the data
+dat <- read.csv("stroopdata.csv")
+
+# Tidy up the data for later analysis
+library(tidyr); suppressMessages(library(dplyr))
+
+# Add a column identifying subjects
+dat.subject <- mutate(dat, subject = 1:nrow(dat))
+
+# Tidy up data by keeping one variable in one column
+tidy.dat <- gather(dat.subject, congruency, time, -subject)
+
+# Calculate the average time for both groups
+tidy.dat %>%
+  group_by(congruency) %>%
+    summarise(mean(time), median(time), sd(time), var(time))
+```
+
+
+### 4. Provide one or two visualizations that show the distribution of the sample data. Write one or two sentences noting what you observe about the plot or plots.
+
+Ans: 
+#### Plot One:
+
+```{r echo=FALSE, plot2 ,message=FALSE, warning=FALSE}
+
+library(ggplot2)
+b <- ggplot(tidy.dat, aes(y = time, x = congruency, fill = congruency))
+ 
+b + geom_boxplot()
+```
+
+#### Description of first plot:
+
+The boxplot indicates that the two groups have significant difference in median times, and the two groups also have different ranges - with the Incongruent words group presenting much longer times.
+
+#### Plot two:
+
+```{r echo=FALSE, plot3 ,message=FALSE, warning=FALSE}
+
+h <- ggplot(tidy.dat, aes(x = time, fill = congruency))
+h + geom_histogram()
+```
+
+#### Description Two:
+
+The histograms confirms the previous observation. It also shows that both groups have evident outliers.
+
+### 5. Now, perform the statistical test and report your results. What is your confidence level and your critical statistic value? Do you reject the null hypothesis or fail to reject it? Come to a conclusion in terms of the experiment task. Did the results match up with your expectations?
+
+Ans:
+
+**Hypothesis:** The two groups have significant difference in their mean times.
+
+```{r echo=FALSE, plot4 ,message=FALSE, warning=FALSE}
+
+# H0: ??C - ??I = 0
+# HA: ??C - ??I ??? 0
+
+mu_diff <- 0 # the null value
+dat.diff <- mutate(dat.subject, diff = Congruent - Incongruent) # add a new diff column
+diff <- dat.diff$diff # grab all the diff values into a vector
+sigma <- sd(diff) # sample sd
+diff_bar <- mean(diff) # sample mean
+n <- length(diff) # sample size
+DF <- n - 1 # degree of freedom
+SE <- sigma/sqrt(n) # standard error
+# Calculate the T-statistic:
+T <- (diff_bar- mu_diff)/SE; T
+```
+
+
+```{r echo=FALSE, plot5 ,message=FALSE, warning=FALSE}
+
+# Calculate the p-value
+p_value <- pt(T, df = DF, lower.tail = TRUE) * 2; p_value
+```
+
+
+```{r echo=FALSE, plot6 ,message=FALSE, warning=FALSE}
+
+# Build the confidence interval based on 5% confidence level
+diff_bar + c(1, -1) * qt(.975, df = DF, lower.tail = FALSE) * SE
+
+```
+
+
+```{r echo=FALSE, plot7 ,message=FALSE, warning=FALSE}
+
+# Verify using the t.test() function
+t.test(x=dat$Congruent, y=dat$Incongruent, alternative = "two.sided", mu = 0, paired = TRUE, conf.level = 0.95)
+
+```
+
+
+Since the p-value is less than 0.05, we reject the null hypothesis and conclude that the difference between congruence and incongruence group time difference is statistically significant, namely, the stroop effect is present. This is in line with my expectation.
+
+
+Based on the confidence intervals, we're 95% confident that the true difference between the congruence and incongruence group average times is between -10.019028 and -5.910555.
+
+
+### 6. Optional: What do you think is responsible for the effects observed? Can you think of an alternative or similar task that would result in a similar effect? Some research about the problem will be helpful for thinking about these two questions!
+
+Ans: I think this effect is caused by the distraction resulted from the presence of the words and particularly, the wrongly labled words. Since humans are so sensitive to words that there is already a "conditioned reflex" established. Therefore, whenever a a word is present, eyes and brain will automatically capture and deciper them, which leads to a delay and a interference with the color recognition.
+
+Numerical/Physical size Stroop tasks, where numerical values and physical size are the factors that contribute to congruency/incongruency, results in a similar effect. It takes longer to recognize the number and physical size (two separate tasks) of small numbers that have a large physical size and large numbers that have a small physical size.
+
+
+### References
+* [github]("http://davidventuri.github.io/udacity-dand-p1/")
+* [wikipedia]("https://en.wikipedia.org/wiki/Stroop_effect")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+age_month_group <- group_by(pf, age_with_months)
+pf.fc_by_age_months <- summarise(age_with_months)
+pf.fc_by_age_months2 <-summarise(age_month_group,
+                                friend_count_mean = mean(friend_count),
+                                friend_count_median= median(as.numeric(friend_count)),
+                                n= n())
+pf.fc_by_age_months2 <-arrange(pf.fc_by_age_months2,age_with_months) 
+head(pf.fc_by_age_months,20)
